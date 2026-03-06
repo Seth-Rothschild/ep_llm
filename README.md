@@ -1,13 +1,10 @@
 # ep_llm
+[![GitHub](https://img.shields.io/badge/github-Seth--Rothschild%2Fep__llm-blue?logo=github)](https://github.com/Seth-Rothschild/ep_llm)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://www.gnu.org/licenses/agpl-3.0)
 
-An LLM feedback plugin for [Etherpad](https://etherpad.org/). Adds a **SEND** button to the toolbar that sends selected text (or the full document if nothing is selected) to a configurable LLM endpoint and displays the response in a sidebar panel.
+An LLM feedback plugin for [Etherpad](https://etherpad.org/). In the same way you might talk to a [rubber duck](https://en.wikipedia.org/wiki/Rubber_duck_debugging), you can get feedback from an LLM that is intended to help you think through your structure and phrasing.
 
-## Features
-
-- **Toolbar button** — click SEND to request feedback on the current selection
-- **Full-document fallback** — if no text is selected, the entire document is sent
-- **Configurable backend** — point the plugin at any OpenAI-compatible API via environment variables
-- **Response panel** — feedback appears in a floating panel without leaving the pad
+This plugin is mostly vibe coded. Feel free to modify it to suit your own needs.
 
 ## Configuration
 
@@ -19,7 +16,7 @@ Set these environment variables before starting Etherpad:
 | `LLM_API_ENDPOINT` | No | Chat completions URL (default: `https://api.openai.com/v1/chat/completions`) |
 | `LLM_MODEL` | No | Model name (default: `gpt-4o-mini`) |
 
-The endpoint must accept the [OpenAI chat completions format](https://platform.openai.com/docs/api-reference/chat).
+Make sure your `LLM_API_ENDPOINT` follows the [OpenAI chat completions format](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create).
 
 ## Installation
 
@@ -31,4 +28,4 @@ pnpm run plugins install ep_llm
 
 ## License
 
-GPL-3.0
+AGPL-3.0

@@ -1,6 +1,16 @@
 'use strict';
 
+const PERSONA_LABELS = {
+  'first-time-reader': 'First-time reader',
+  skeptic: 'Skeptic',
+  structure: 'Structure',
+  accessibility: 'Accessibility',
+};
+
 let editorApi = null;
+let lastSentText = '';
+let lastSentPersona = 'first-time-reader';
+let lastResponse = '';
 
 function createFeedbackPanel() {
   const panel = document.createElement('div');
@@ -10,8 +20,8 @@ function createFeedbackPanel() {
     position: fixed;
     right: 16px;
     top: 60px;
-    width: 320px;
-    max-height: 480px;
+    width: 340px;
+    max-height: 520px;
     background: #fff;
     border: 1px solid #ccc;
     border-radius: 6px;
@@ -26,26 +36,68 @@ function createFeedbackPanel() {
     <div style="
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       padding: 10px 12px;
       border-bottom: 1px solid #eee;
-      font-weight: bold;
     ">
-      <span>LLM Feedback</span>
+      <div>
+        <div id="llm-panel-persona" style="font-weight: bold;"></div>
+        <div id="llm-panel-quote" style="
+          font-size: 11px;
+          color: #999;
+          margin-top: 2px;
+          font-style: italic;
+        "></div>
+      </div>
       <button id="llm-panel-close" style="
         background: none;
         border: none;
         cursor: pointer;
         font-size: 16px;
         line-height: 1;
+        padding: 0;
+        margin-left: 8px;
+        flex-shrink: 0;
       ">&#x2715;</button>
     </div>
-    <div style="padding: 12px; overflow-y: auto; flex: 1;">
-      <span id="llm-response-text" style="
-        color: #555;
+
+    <div id="llm-panel-body" style="
+      padding: 12px;
+      overflow-y: auto;
+      flex: 1;
+    ">
+      <div id="llm-response-text" style="
+        color: #333;
         white-space: pre-wrap;
-        line-height: 1.5;
-      ">Highlight text and click SEND to get feedback.</span>
+        line-height: 1.6;
+      "></div>
+    </div>
+
+    <div id="llm-followup-section" style="
+      display: none;
+      border-top: 1px solid #eee;
+      padding: 8px 12px;
+      gap: 6px;
+      align-items: center;
+    ">
+      <input id="llm-followup-input" type="text" placeholder="Ask a follow-up\u2026" style="
+        flex: 1;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 5px 8px;
+        font-size: 12px;
+        outline: none;
+      " />
+      <button id="llm-followup-send" style="
+        background: #555;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        padding: 5px 10px;
+        cursor: pointer;
+        font-size: 12px;
+        flex-shrink: 0;
+      ">Ask</button>
     </div>
   `;
 
@@ -58,9 +110,11 @@ function readCurrentEditorContent() {
 
   editorApi.callWithAce((editor) => {
     const editorState = editor.ace_getRep();
-    const selectionIsEmpty =
-      editorState.selStart[0] === editorState.selEnd[0] &&
-      editorState.selStart[1] === editorState.selEnd[1];
+    const selectionLength =
+      editorState.selEnd[0] !== editorState.selStart[0]
+        ? Infinity
+        : editorState.selEnd[1] - editorState.selStart[1];
+    const selectionIsEmpty = selectionLength <= 1;
 
     if (selectionIsEmpty) {
       content = editorState.alltext;
@@ -89,6 +143,72 @@ function extractSelectionText(editorState) {
   return lines.join('\n');
 }
 
+function buildQuotePreview(text) {
+  const singleLine = text.replace(/\s+/g, ' ').trim();
+  if (singleLine.length <= 60) return `\u201c${singleLine}\u201d`;
+  return `\u201c${singleLine.slice(0, 60)}\u2026\u201d`;
+}
+
+async function fetchFeedback(requestBody) {
+  const response = await fetch('/llm', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(requestBody),
+  });
+
+  const data = await response.json();
+  return data.response;
+}
+
+async function sendInitialRequest(panel, text, persona) {
+  lastSentText = text;
+  lastSentPersona = persona;
+  lastResponse = '';
+
+  document.getElementById('llm-panel-persona').textContent = PERSONA_LABELS[persona];
+  document.getElementById('llm-panel-quote').textContent = buildQuotePreview(text);
+  document.getElementById('llm-followup-section').style.display = 'none';
+
+  const responseEl = document.getElementById('llm-response-text');
+  panel.style.display = 'flex';
+  responseEl.textContent = 'Thinking\u2026';
+
+  try {
+    lastResponse = await fetchFeedback({text, persona});
+    responseEl.textContent = lastResponse;
+
+    const followupSection = document.getElementById('llm-followup-section');
+    followupSection.style.display = 'flex';
+    document.getElementById('llm-followup-input').value = '';
+  } catch (err) {
+    console.error('[ep_llm] request failed:', err);
+    responseEl.textContent = 'Error: could not reach the LLM backend.';
+  }
+}
+
+async function sendFollowUpRequest() {
+  const input = document.getElementById('llm-followup-input');
+  const followUpQuestion = input.value.trim();
+  if (!followUpQuestion) return;
+
+  const responseEl = document.getElementById('llm-response-text');
+  responseEl.textContent = 'Thinking\u2026';
+  input.value = '';
+
+  try {
+    lastResponse = await fetchFeedback({
+      text: lastSentText,
+      persona: lastSentPersona,
+      followUpQuestion,
+      previousResponse: lastResponse,
+    });
+    responseEl.textContent = lastResponse;
+  } catch (err) {
+    console.error('[ep_llm] follow-up request failed:', err);
+    responseEl.textContent = 'Error: could not reach the LLM backend.';
+  }
+}
+
 exports.postToolbarInit = (_hookName, {ace}) => {
   editorApi = ace;
 
@@ -98,29 +218,20 @@ exports.postToolbarInit = (_hookName, {ace}) => {
     panel.style.display = 'none';
   });
 
+  const followupSendBtn = document.getElementById('llm-followup-send');
+  followupSendBtn.addEventListener('click', sendFollowUpRequest);
+
+  const followupInput = document.getElementById('llm-followup-input');
+  followupInput.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Enter') sendFollowUpRequest();
+  });
+
   const sendBtn = document.getElementById('llm-send-btn');
   if (!sendBtn) return;
 
-  sendBtn.addEventListener('click', async () => {
+  sendBtn.addEventListener('click', () => {
     const text = readCurrentEditorContent();
-
-    const responseEl = document.getElementById('llm-response-text');
-    panel.style.display = 'flex';
-    responseEl.textContent = 'Thinking\u2026';
-
-    try {
-      const response = await fetch('/llm', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({text}),
-      });
-
-      const data = await response.json();
-      console.log('[ep_llm] response:', data.response);
-      responseEl.textContent = data.response;
-    } catch (err) {
-      console.error('[ep_llm] request failed:', err);
-      responseEl.textContent = 'Error: could not reach the LLM backend.';
-    }
+    const persona = document.getElementById('llm-persona-select').value;
+    sendInitialRequest(panel, text, persona);
   });
 };

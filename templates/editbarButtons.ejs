@@ -1,10 +1,51 @@
-<li id="llm-send-btn" class="acl-write" title="Send to LLM">
-  <a>
-    <span class="buttonicon" style="font-size:11px;font-weight:bold;line-height:30px;padding:0 6px;">SEND</span>
-  </a>
+<li class="acl-write" id="llm-toolbar-group" title="Get LLM feedback on selection or document">
+  <select id="llm-persona-select">
+    <option value="first-time-reader">First-time reader</option>
+    <option value="skeptic">Skeptic</option>
+    <option value="structure">Structure</option>
+    <option value="accessibility">Accessibility</option>
+  </select>
+  <button id="llm-send-btn">&#x27A4;</button>
 </li>
 
 <style>
-#llm-send-btn { cursor: pointer; opacity: 0.7; }
-#llm-send-btn:hover { opacity: 1; }
+#llm-toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+  cursor: default;
+}
+
+#llm-persona-select {
+  height: 26px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 4px;
+  outline: none;
+}
+
+#llm-send-btn {
+  height: 26px;
+  width: 26px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+#llm-send-btn:hover {
+  opacity: 1;
+  background: #f5f5f5;
+}
 </style>
