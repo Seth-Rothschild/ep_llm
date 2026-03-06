@@ -1,0 +1,14 @@
+{
+  "parts": [
+    {
+      "name": "main",
+      "hooks": {
+        "expressPreSession": "ep_llm/index",
+        "eejsBlock_editbarMenuLeft": "ep_llm/index"
+      },
+      "client_hooks": {
+        "postToolbarInit": "ep_llm/static/js/index"
+      }
+    }
+  ]
+}

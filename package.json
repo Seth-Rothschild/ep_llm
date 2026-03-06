@@ -1,0 +1,22 @@
+{
+  "name": "ep_llm",
+  "version": "0.0.1",
+  "description": "LLM feedback plugin for Etherpad",
+  "author": {
+    "name": "Seth Rothschild",
+    "email": "seth.j.rothschild@gmail.com"
+  },
+  "keywords": [
+    "etherpad",
+    "plugin",
+    "ep",
+    "llm"
+  ],
+  "license": "GPL-3.0",
+  "peerDependencies": {
+    "ep_etherpad-lite": ">=1.8.6"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
